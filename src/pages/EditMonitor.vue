@@ -1176,7 +1176,7 @@ export default {
             // Source: https://digitalfortress.tech/tips/top-15-commonly-used-regex/
             ipRegexPattern: "((^\\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\\s*$)|(^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$))",
             // Source: https://stackoverflow.com/questions/106179/regular-expression-to-match-dns-hostname-or-ip-address
-            hostnameRegexPattern: "^(([a-zA-Z0-9_]|[a-zA-Z0-9_][a-zA-Z0-9\\-_]*[a-zA-Z0-9_])\\.)*([A-Za-z0-9_]|[A-Za-z0-9_][A-Za-z0-9\\-_]*[A-Za-z0-9_])$"
+            hostnameRegexPattern: "^(([a-zA-Z0-9_]|[a-zA-Z0-9_][a-zA-Z0-9\\-_]*[a-zA-Z0-9_])\\.)*([A-Za-z0-9_]|[A-Za-z0-9_][A-Za-z0-9\\-_]*[A-Za-z0-9_])$",
             kafkaSaslMechanismOptions: [],
             ipOrHostnameRegexPattern: hostNameRegexPattern(),
             mqttIpOrHostnameRegexPattern: hostNameRegexPattern(true),
@@ -1732,6 +1732,7 @@ message HealthCheckResponse {
 
         /**
          * Show popup if the interval value is less than 20
+         * @returns {void}
          */
         checkIntervalValue() {
             if (this.monitor.interval < 20) {
@@ -1741,6 +1742,7 @@ message HealthCheckResponse {
 
         /**
          * Check that the user inputed code is correct
+         * @returns {void}
          */
         validateConfirmationString() {
             if (this.lowIntervalConfirmation.testString === this.lowIntervalConfirmation.userString) {
@@ -1778,82 +1780,83 @@ message HealthCheckResponse {
             // Beautify the JSON format
             if (this.monitor.body) {
             // Beautify the JSON format (only if httpBodyEncoding is not set or === json)
-            if (this.monitor.body && (!this.monitor.httpBodyEncoding || this.monitor.httpBodyEncoding === "json")) {
-                this.monitor.body = JSON.stringify(JSON.parse(this.monitor.body), null, 4);
-            }
-
-            const monitorTypesWithEncodingAllowed = [ "http", "keyword", "json-query" ];
-            if (this.monitor.type && !monitorTypesWithEncodingAllowed.includes(this.monitor.type)) {
-                this.monitor.httpBodyEncoding = null;
-            }
-
-            if (this.monitor.headers) {
-                this.monitor.headers = JSON.stringify(JSON.parse(this.monitor.headers), null, 4);
-            }
-
-            if (this.monitor.hostname) {
-                this.monitor.hostname = this.monitor.hostname.trim();
-            }
-
-            if (this.monitor.url) {
-                this.monitor.url = this.monitor.url.trim();
-            }
-
-            let createdNewParent = false;
-
-            if (this.draftGroupName && this.monitor.parent === -1) {
-                // Create Monitor with name of draft group
-                const res = await new Promise((resolve) => {
-                    this.$root.add({
-                        ...monitorDefaults,
-                        type: "group",
-                        name: this.draftGroupName,
-                        interval: this.monitor.interval,
-                        active: false,
-                    }, resolve);
-                });
-
-                if (res.ok) {
-                    createdNewParent = true;
-                    this.monitor.parent = res.monitorID;
-                } else {
-                    this.$root.toastError(res.msg);
-                    this.processing = false;
-                    return;
+                if (this.monitor.body && (!this.monitor.httpBodyEncoding || this.monitor.httpBodyEncoding === "json")) {
+                    this.monitor.body = JSON.stringify(JSON.parse(this.monitor.body), null, 4);
                 }
-            }
 
-            if (this.isAdd || this.isClone) {
-                this.$root.add(this.monitor, async (res) => {
+                const monitorTypesWithEncodingAllowed = [ "http", "keyword", "json-query" ];
+                if (this.monitor.type && !monitorTypesWithEncodingAllowed.includes(this.monitor.type)) {
+                    this.monitor.httpBodyEncoding = null;
+                }
+
+                if (this.monitor.headers) {
+                    this.monitor.headers = JSON.stringify(JSON.parse(this.monitor.headers), null, 4);
+                }
+
+                if (this.monitor.hostname) {
+                    this.monitor.hostname = this.monitor.hostname.trim();
+                }
+
+                if (this.monitor.url) {
+                    this.monitor.url = this.monitor.url.trim();
+                }
+
+                let createdNewParent = false;
+
+                if (this.draftGroupName && this.monitor.parent === -1) {
+                // Create Monitor with name of draft group
+                    const res = await new Promise((resolve) => {
+                        this.$root.add({
+                            ...monitorDefaults,
+                            type: "group",
+                            name: this.draftGroupName,
+                            interval: this.monitor.interval,
+                            active: false,
+                        }, resolve);
+                    });
 
                     if (res.ok) {
-                        await this.$refs.tagsManager.submit(res.monitorID);
+                        createdNewParent = true;
+                        this.monitor.parent = res.monitorID;
+                    } else {
+                        this.$root.toastError(res.msg);
+                        this.processing = false;
+                        return;
+                    }
+                }
+
+                if (this.isAdd || this.isClone) {
+                    this.$root.add(this.monitor, async (res) => {
+
+                        if (res.ok) {
+                            await this.$refs.tagsManager.submit(res.monitorID);
+
+                            // Start the new parent monitor after edit is done
+                            if (createdNewParent) {
+                                await this.startParentGroupMonitor();
+                            }
+                            this.processing = false;
+                            this.$router.push("/dashboard/" + res.monitorID);
+                        } else {
+                            this.processing = false;
+                        }
+
+                        this.$root.toastRes(res);
+                    });
+                } else {
+                    await this.$refs.tagsManager.submit(this.monitor.id);
+
+                    this.$root.getSocket().emit("editMonitor", this.monitor, (res) => {
+                        this.processing = false;
+                        this.$root.toastRes(res);
+                        this.init();
 
                         // Start the new parent monitor after edit is done
                         if (createdNewParent) {
-                            await this.startParentGroupMonitor();
+                            this.startParentGroupMonitor();
                         }
-                        this.processing = false;
-                        this.$router.push("/dashboard/" + res.monitorID);
-                    } else {
-                        this.processing = false;
-                    }
-
-                    this.$root.toastRes(res);
-                });
-            } else {
-                await this.$refs.tagsManager.submit(this.monitor.id);
-
-                this.$root.getSocket().emit("editMonitor", this.monitor, (res) => {
-                    this.processing = false;
-                    this.$root.toastRes(res);
-                    this.init();
-
-                    // Start the new parent monitor after edit is done
-                    if (createdNewParent) {
-                        this.startParentGroupMonitor();
-                    }
-                });
+                    });
+                }
             }
         },
 
