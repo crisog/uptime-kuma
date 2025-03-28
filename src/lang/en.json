@@ -82,6 +82,7 @@
     "resendEveryXTimes": "Resend every {0} times",
     "resendDisabled": "Resend disabled",
     "retriesDescription": "Maximum retries before the service is marked as down and a notification is sent",
+    "minimumIntervalWarning": "Warning: Intervals below 20 seconds may result in poor performance.",
     "ignoredTLSError": "TLS/SSL errors have been ignored",
     "ignoreTLSError": "Ignore TLS/SSL errors for HTTPS websites",
     "ignoreTLSErrorGeneral": "Ignore TLS/SSL error for connection",
